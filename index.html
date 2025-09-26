@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Punch the Dude — мобільна версія</title>
+<style>
+:root{--bg:#0b1220;--card:#0f1724;--accent:#ff6b6b;--text:#e6eef8}
+html,body{height:100%;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;background:linear-gradient(180deg,var(--bg),#071026);color:var(--text)}
+.wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box}
+.stage{width:100%;max-width:380px;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));border-radius:14px;padding:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6);position:relative}
+.title{font-weight:700;margin:0 0 6px 0;font-size:16px;text-align:center}
+.subtitle{font-size:12px;color:#9fb4d6;margin-bottom:10px;text-align:center}
+
+.arena{display:flex;align-items:center;justify-content:center;padding:4px;background:rgba(255,255,255,0.02);border-radius:8px;position:relative;}
+svg{width:100%;height:auto;display:block;max-width:260px;}
+.part{cursor:pointer;transition:transform .25s ease, filter .25s ease}
+.part:hover{transform:scale(1.05)}
+
+.hit-anim{animation:hit-bounce .5s cubic-bezier(.68,-0.55,.27,1.55)}
+@keyframes hit-bounce{0%{transform:scale(1) translateY(0)}40%{transform:scale(1.2) translateY(-15px)}70%{transform:scale(.95) translateY(5px)}100%{transform:scale(1) translateY(0)}}
+
+.hit-flash{animation:flash .4s ease-out}
+@keyframes flash{0%{filter:brightness(2)}100%{filter:brightness(1)}}
+
+.floating{position:absolute;left:50%;transform:translateX(-50%);top:8px;padding:6px 10px;border-radius:10px;background:rgba(0,0,0,0.65);backdrop-filter:blur(4px);font-weight:600;transition:opacity .3s, transform .3s;pointer-events:none;white-space:nowrap;opacity:0;font-size:12px}
+.floating.show{opacity:1;transform:translate(-50%,-14px)}
+
+.popup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.98);background:var(--card);padding:12px;border-radius:12px;box-shadow:0 10px 40px rgba(2,6,23,0.6);min-width:240px;max-width:90vw;display:none;z-index:60;text-align:center}
+.popup.show{display:block;animation:pop .25s ease-out}
+@keyframes pop{from{transform:translate(-50%,-50%) scale(0.8);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+.popup h3{margin:0 0 6px 0;font-size:15px}
+.popup p{margin:0 0 10px 0;color:#bcd3ee}
+.btn{display:inline-block;padding:6px 10px;border-radius:8px;background:linear-gradient(90deg,#1f2937,#0f1724);color:var(--text);cursor:pointer;border:1px solid rgba(255,255,255,0.03);font-size:13px}
+
+.footer{margin-top:10px;font-size:12px;color:#9fb4d6;display:flex;justify-content:space-between;align-items:center}
+.stats{font-weight:700;font-size:13px}
+
+/* Нокаут анімація */
+.knockout{
+  position:fixed;
+  top:0; left:0; width:100%; height:100%;
+  background:rgba(255,255,255,0.9);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;font-weight:900;color:#ff3b3b;
+  animation:flashScreen .8s ease-out;
+  z-index:100;
+}
+@keyframes flashScreen{
+  0%{opacity:0}
+  20%{opacity:1}
+  80%{opacity:1}
+  100%{opacity:0}
+}
+
+/* бонусне повідомлення */
+.sideMessage{
+  position:fixed;cursor:pointer;z-index:90;
+  background:linear-gradient(120deg,#ff6b6b,#ffdd59);
+  padding:8px 12px;border-radius:12px;color:#000;font-weight:700;font-size:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  opacity:0;transform:scale(0.8);transition:0.4s;
+}
+.sideMessage.show{opacity:1;transform:scale(1);}
+@media(max-width:480px){
+  .sideMessage{font-size:11px;padding:6px 10px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <div class="title">ЛУПЦЮВАННЯ АННИ МАРІЇ</div>
+    <div class="subtitle">ВСІ УДАРИ ЯКІ НАНЕСУТЬ КОРИСТУВАЧІ БУДУТЬ ВИКОНУВАТИСЬ В РЕАЛЬНОМУ ЖИТТІ НА РЕАЛЬНІЙ АННІ МАРІЇ.</div>
+
+    <div class="arena" id="arena">
+      <svg id="man" viewBox="0 0 200 360" xmlns="http://www.w3.org/2000/svg">
+        <path d="M60 36 q20 -40 40 0 q20 -40 40 0 q-10 32 -40 38 q-30 -6 -40 -38 z" fill="#3c2f2f" stroke="#1a1a1a" stroke-width="2" />
+        <circle id="head" class="part" cx="100" cy="60" r="28" fill="#ffd7bd" stroke="#caa089" stroke-width="2" />
+        <circle cx="90" cy="55" r="4" fill="#000"/>
+        <circle cx="110" cy="55" r="4" fill="#000"/>
+        <path d="M90 70 q10 12 20 0" stroke="#900" stroke-width="2" fill="transparent" stroke-linecap="round"/>
+        <rect x="92" y="88" width="16" height="8" rx="3" fill="#f0c9a8" />
+        <defs>
+          <pattern id="torsoImg" patternUnits="objectBoundingBox" width="1" height="1">
+            <image href="https://i.ibb.co/rfvdww6Y/image.jpg" preserveAspectRatio="xMidYMid slice" width="100" height="100" />
+          </pattern>
+        </defs>
+        <rect id="torso" class="part" x="66" y="96" width="68" height="96" rx="14" fill="url(#torsoImg)" stroke="#222" stroke-width="1" />
+        <rect id="leftArm" class="part" x="22" y="104" width="34" height="14" rx="8" transform="rotate(-20 22 104)" fill="#ffd7bd" />
+        <rect id="leftFore" class="part" x="12" y="124" width="26" height="48" rx="10" transform="rotate(8 12 124)" fill="#ffd7bd" />
+        <rect id="rightArm" class="part" x="144" y="104" width="34" height="14" rx="8" transform="rotate(20 144 104)" fill="#ffd7bd" />
+        <rect id="rightFore" class="part" x="162" y="124" width="26" height="48" rx="10" transform="rotate(-8 162 124)" fill="#ffd7bd" />
+        <rect x="78" y="192" width="44" height="18" rx="8" fill="#1f2937" />
+        <rect id="leftLeg" class="part" x="78" y="210" width="18" height="80" rx="10" fill="#111827" />
+        <rect id="rightLeg" class="part" x="104" y="210" width="18" height="80" rx="10" fill="#111827" />
+        <text id="nameText" x="100" y="320" font-size="12" text-anchor="middle" fill="#dbeafe">Анна Марія</text>
+      </svg>
+    </div>
+
+    <div class="floating" id="floating">ВСІ УДАРИ ЯКІ НАНЕСУТЬ КОРИСТУВАЧІ БУДУТЬ ВИКОНУВАТИСЬ В РЕАЛЬНОМУ ЖИТТІ НА РЕАЛЬНІЙ АННІ МАРІЇ</div>
+
+    <div class="footer">
+      <div class="stats">Удари: <span id="totalHits">0</span></div>
+      <div class="stats">Нокаути: <span id="knockouts">0</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="popup" id="popup">
+  <h3 id="popupTitle">Вдарили!</h3>
+  <p id="popupText">Текст</p>
+  <div style="text-align:right"><div class="btn" id="closeBtn">Ок</div></div>
+</div>
+
+<div class="sideMessage" id="sideMsg">Вдарити Анну Марію в сонячне сплетіння!</div>
+
+<script>
+const parts = {
+  head: 'в голову і стала ще тупіша 💥',
+  torso: 'у груди (ліва цицька)💢',
+  leftArm: 'по лівій руці 👊',
+  leftFore: 'по лівій кисті ✋',
+  rightArm: 'по правій руці 👊',
+  rightFore: 'по правій кисті ✋',
+  leftLeg: 'по лівій нозі, впала і розбила челюсть 🦵',
+  rightLeg: 'по правій нозі 🦵'
+};
+
+const floating = document.getElementById('floating');
+const popup = document.getElementById('popup');
+const popupTitle = document.getElementById('popupTitle');
+const popupText = document.getElementById('popupText');
+const closeBtn = document.getElementById('closeBtn');
+const totalHitsEl = document.getElementById('totalHits');
+const knockoutsEl = document.getElementById('knockouts');
+const sideMsg = document.getElementById('sideMsg');
+const arena = document.getElementById('arena');
+
+let totalHits = parseInt(localStorage.getItem('totalHits')) || 0;
+let knockouts = parseInt(localStorage.getItem('knockouts')) || 0;
+totalHitsEl.textContent = totalHits;
+knockoutsEl.textContent = knockouts;
+const targetName = 'Анна Марія';
+let canHit=true;
+
+function playThud(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type='sine';o.frequency.value=60;
+    g.gain.value=0.001;
+    o.connect(g);g.connect(ctx.destination);
+    g.gain.exponentialRampToValueAtTime(0.8,ctx.currentTime+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+    o.start();o.stop(ctx.currentTime+0.52);
+  }catch(e){}
+}
+
+function showPopup(partId){
+  const when = parts[partId] || 'по тілу';
+  popupTitle.textContent = '💥 Сильний удар!';
+  popupText.textContent = `Ви вдарили ${targetName} ${when}.`;
+  popup.classList.add('show');
+  canHit=false;
+}
+function hidePopup(){
+  popup.classList.remove('show');
+  canHit=true;
+}
+
+function showFloating(text){
+  floating.textContent = text;
+  floating.classList.add('show');
+  setTimeout(()=>floating.classList.remove('show'),1400);
+}
+
+function showKnockout(){
+  const koDiv = document.createElement('div');
+  koDiv.className='knockout';
+  koDiv.textContent='💥 НОКАУТ! 💥';
+  document.body.appendChild(koDiv);
+  setTimeout(()=>koDiv.remove(),800);
+}
+
+function onPartClick(e){
+  if(!canHit) return;
+  const id = e.target.id;
+  if(!id || !parts[id]) return;
+  totalHits++;
+  localStorage.setItem('totalHits', totalHits);
+  totalHitsEl.textContent = totalHits;
+  e.target.classList.add('hit-anim','hit-flash');
+  setTimeout(()=>e.target.classList.remove('hit-anim','hit-flash'),600);
+  playThud();
+  const when = parts[id];
+  showFloating(`⚡ ${targetName} отримала удар ${when}!`);
+  setTimeout(()=>showPopup(id),320);
+
+  if(totalHits % 100 === 0){
+    knockouts++;
+    localStorage.setItem('knockouts', knockouts);
+    knockoutsEl.textContent = knockouts;
+    showKnockout();
+  }
+}
+
+Object.keys(parts).forEach(pid=>{
+  const el=document.getElementById(pid);
+  if(el) el.addEventListener('pointerdown', onPartClick);
+});
+
+closeBtn.addEventListener('click', hidePopup);
+popup.addEventListener('pointerdown', e=>{if(e.target===popup) hidePopup();});
+
+// бонусне повідомлення в будь-якій частині екрану
+function showRandomSideMsg(){
+  const x = Math.random()*80; // %
+  const y = 20 + Math.random()*50;
+  sideMsg.style.left = x+'%';
+  sideMsg.style.top = y+'%';
+  sideMsg.classList.add('show');
+  setTimeout(()=>sideMsg.classList.remove('show'),8000);
+  const next = 20000 + Math.random()*10000;
+  setTimeout(showRandomSideMsg,next);
+}
+setTimeout(showRandomSideMsg,15000);
+
+sideMsg.addEventListener('click', ()=>{
+  totalHits+=100;
+  knockouts+=1;
+  localStorage.setItem('totalHits', totalHits);
+  localStorage.setItem('knockouts', knockouts);
+  totalHitsEl.textContent=totalHits;
+  knockoutsEl.textContent=knockouts;
+  showKnockout();
+  showFloating(`💥 БОНУС! 100 ударів + 1 нокаут!`);
+  sideMsg.classList.remove('show');
+});
+</script>
+</body>
+</html>
